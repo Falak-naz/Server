@@ -3,7 +3,6 @@ import { UserService } from "../services/index.js";
 import { httpResponse } from "../utils/index.js";
 import passwordHash from "password-hash";
 import jwt from "jsonwebtoken";
-import { config } from "dotenv";
 
 export const UserController = {
   signup: async (req, res) => {
@@ -49,9 +48,16 @@ export const UserController = {
       const token = jwt.sign({ userId: data._id }, process.env.JWT_SECRET, {
         expiresIn: "1h",
       });
-      if (data) {
-        return httpResponse.SUCCESS(res, data, { token: token });
-      }
+
+     await UserModel.findByIdAndUpdate(data._id, { token: token });
+      
+         const  finalobj= {
+          username : data.name,
+          email : data.email,
+          token : data.token
+        }
+     return httpResponse.SUCCESS(res, finalobj );
+         
     } catch (error) {
       return httpResponse.INTERNAL_SERVER_ERROR(res, error);
     }
