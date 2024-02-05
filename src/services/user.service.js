@@ -6,7 +6,6 @@ export const UserService = {
     return newUser;
   },
 
-
   emailExist: async (email) => {
     const newUser = await UserModel.findOne({email});
     return newUser !== null;
@@ -14,7 +13,8 @@ export const UserService = {
 
   emailCheck: async (email ) => {
    return  UserModel.findOne({email})
-  }
+  },
+ 
 
 };
 

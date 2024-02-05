@@ -50,7 +50,6 @@ export const UserController = {
       });
 
      await UserModel.findByIdAndUpdate(data._id, { token: token });
-      
          const  finalobj= {
           username : data.name,
           email : data.email,
@@ -59,7 +58,12 @@ export const UserController = {
      return httpResponse.SUCCESS(res, finalobj );
          
     } catch (error) {
+      console.error("Error updating user token:", error); // Log the error
       return httpResponse.INTERNAL_SERVER_ERROR(res, error);
     }
-  },
+  }
+
+
+
 };
+
