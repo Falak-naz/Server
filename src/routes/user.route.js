@@ -6,6 +6,6 @@ import { UserController } from "../controllers/index.js";
 const router = express.Router();
 router.post("/signup",validate(UserValidationSchema.add), UserController.signup)
 router.post("/signin", UserController.signin)
-
+router.put('/about/:id', validate(UserValidationSchema.update), UserController.updateUser);
 
 export default router;

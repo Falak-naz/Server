@@ -9,4 +9,15 @@ export const UserValidationSchema = {
       token: Joi.string().optional()
     }),
   },
+  update: {
+    body: Joi.object().keys({
+      name: Joi.string().alphanum().min(3).max(10).optional(),
+      email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).optional(),
+      oldPassword: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,15}$')).optional(),
+      newPassword: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,15}$')).optional(),
+      phone: Joi.string().optional(),
+      bio: Joi.string().optional(),
+      birthDate: Joi.date().optional()
+    }),
+  },
 };

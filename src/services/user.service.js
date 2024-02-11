@@ -14,7 +14,7 @@ export const UserService = {
   emailCheck: async (email ) => {
    return  UserModel.findOne({email})
   },
- 
+
 
 };
 
