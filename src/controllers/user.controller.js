@@ -34,34 +34,40 @@ export const UserController = {
   signin: async (req, res) => {
     try {
       const { email, password } = req.body;
-
-      const data = await UserService.emailCheck(email); // check email id is already available or not
-      if (!data) {
+  
+      const user = await UserService.emailCheck(email); // Check if email exists
+      if (!user) {
         return httpResponse.NOT_FOUND(res, { error: "user not found" });
       }
-      const hashedPassword = passwordHash.verify(password, data.password);
-
-      if (!hashedPassword) {
+      const isPasswordValid = passwordHash.verify(password, user.password);
+  
+      if (!isPasswordValid) {
         return httpResponse.NOT_FOUND(res, { error: "password not matched" });
       }
-
-      const token = jwt.sign({ userId: data._id }, process.env.JWT_SECRET, {
+  
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
         expiresIn: "1h",
       });
-
-     await UserModel.findByIdAndUpdate(data._id, { token: token });
-         const  finalobj= {
-          username : data.name,
-          email : data.email,
-          token : data.token
-        }
-     return httpResponse.SUCCESS(res, finalobj );
-         
+  
+      // Update the token in the database
+      await UserModel.findByIdAndUpdate(user._id, { token: token });
+  
+      // Prepare the response object
+      const responseObj = {
+        username: user.name,
+        email: user.email,
+        token: token,
+        userId: user._id // Include the user ID in the response
+      };
+  
+      return httpResponse.SUCCESS(res, responseObj);
+       
     } catch (error) {
-      console.error("Error updating user token:", error); // Log the error
+      console.error("Error in sign-in:", error); // Log the error
       return httpResponse.INTERNAL_SERVER_ERROR(res, error);
     }
   },
+  
   
   updateUser: async (req, res) => {
     const { name, email, oldPassword, newPassword, phone, bio, birthDate } = req.body;
@@ -98,6 +104,22 @@ export const UserController = {
       return httpResponse.INTERNAL_SERVER_ERROR(res, error);
     }
   },
+  getUser: async (req, res) => {
+    const userId = req.params.id;
+
+    try {
+      const user = await UserModel.findById(userId).select('-password'); // Exclude the password from the result
+      if (!user) {
+        return httpResponse.NOT_FOUND(res, { error: "User not found" });
+      }
+      
+      return httpResponse.SUCCESS(res, user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      return httpResponse.INTERNAL_SERVER_ERROR(res, error);
+    }
+  },
+
 
 };
 
