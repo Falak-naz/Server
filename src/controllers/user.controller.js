@@ -3,7 +3,6 @@ import { UserService } from "../services/index.js";
 import { httpResponse } from "../utils/index.js";
 import passwordHash from "password-hash";
 import jwt from "jsonwebtoken";
-import multer from "multer";
 
 
 export const UserController = {
