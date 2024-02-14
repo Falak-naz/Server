@@ -6,19 +6,6 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 
 
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Specify the destination directory for storing uploaded files
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname); // Specify the filename for the uploaded file
-  }
-});
-
-// Initialize multer with the configured storage engine
-const upload = multer({ storage: storage });
-
 export const UserController = {
   signup: async (req, res) => {
     const { name, email, password } = req.body;
@@ -84,53 +71,44 @@ export const UserController = {
   },
   
   
-  updateUser: [
-    upload.single('profilePic'), // Middleware to handle single file upload named 'profilePic'
-    async (req, res) => {
-      const { name, email, oldPassword, newPassword, phone, bio, birthDate } = req.body;
-      const userId = req.params.id;
+  updateUser: async (req, res) => {
+    const { name, email, oldPassword, newPassword, phone, bio, birthDate } = req.body;
+    const userId = req.params.id;
   
-      try {
-        const user = await UserModel.findById(userId);
+    try {
+      const user = await UserModel.findById(userId);
   
-        if (!user) {
-          return httpResponse.NOT_FOUND(res, { error: "User not found" });
-        }
-  
-        // Object to hold the fields that need to be updated
-        const updateFields = {};
-  
-        if (name) updateFields.name = name;
-        if (email) updateFields.email = email;
-        if (phone) updateFields.phone = phone;
-        if (bio) updateFields.bio = bio;
-        if (birthDate) updateFields.birthDate = birthDate;
-  
-        // Check and update password only if oldPassword and newPassword are provided
-        if (oldPassword && newPassword) {
-          const isPasswordCorrect = passwordHash.verify(oldPassword, user.password);
-          if (!isPasswordCorrect) {
-            return httpResponse.UNAUTHORIZED(res, { error: "Wrong old password" });
-          }
-          updateFields.password = passwordHash.generate(newPassword);
-        }
-
-        // If a file is uploaded, set the profilePic field to the path of the uploaded file
-        if (req.file) {
-          updateFields.profilePic = req.file.path; // Assuming req.file.path contains the path of the uploaded file
-        }
-  
-        // Update user with new details
-        const updatedUser = await UserModel.findByIdAndUpdate(userId, updateFields, { new: true });
-  
-        return httpResponse.SUCCESS(res, { message: "User updated successfully", user: updatedUser });
-      } catch (error) {
-        console.error("Error updating user:", error);
-        return httpResponse.INTERNAL_SERVER_ERROR(res, error);
+      if (!user) {
+        return httpResponse.NOT_FOUND(res, { error: "User not found" });
       }
-    }
-  ],
   
+      // Object to hold the fields that need to be updated
+      const updateFields = {};
+  
+      if (name) updateFields.name = name;
+      if (email) updateFields.email = email;
+      if (phone) updateFields.phone = phone;
+      if (bio) updateFields.bio = bio;
+      if (birthDate) updateFields.birthDate = birthDate;
+  
+      // Check and update password only if oldPassword and newPassword are provided
+      if (oldPassword && newPassword) {
+        const isPasswordCorrect = passwordHash.verify(oldPassword, user.password);
+        if (!isPasswordCorrect) {
+          return httpResponse.UNAUTHORIZED(res, { error: "Wrong old password" });
+        }
+        updateFields.password = passwordHash.generate(newPassword);
+      }
+  
+      // Update user with new details
+      const updatedUser = await UserModel.findByIdAndUpdate(userId, updateFields, { new: true });
+  
+      return httpResponse.SUCCESS(res, { message: "User updated successfully", user: updatedUser });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return httpResponse.INTERNAL_SERVER_ERROR(res, error);
+    }
+  },
   
   getUser: async (req, res) => {
     const userId = req.params.id;
