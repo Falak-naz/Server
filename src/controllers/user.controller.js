@@ -3,6 +3,21 @@ import { UserService } from "../services/index.js";
 import { httpResponse } from "../utils/index.js";
 import passwordHash from "password-hash";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+
+
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Specify the destination directory for storing uploaded files
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // Specify the filename for the uploaded file
+  }
+});
+
+// Initialize multer with the configured storage engine
+const upload = multer({ storage: storage });
 
 export const UserController = {
   signup: async (req, res) => {
@@ -69,41 +84,54 @@ export const UserController = {
   },
   
   
-  updateUser: async (req, res) => {
-    const { name, email, oldPassword, newPassword, phone, bio, birthDate } = req.body;
-    const userId = req.params.id;
+  updateUser: [
+    upload.single('profilePic'), // Middleware to handle single file upload named 'profilePic'
+    async (req, res) => {
+      const { name, email, oldPassword, newPassword, phone, bio, birthDate } = req.body;
+      const userId = req.params.id;
+  
+      try {
+        const user = await UserModel.findById(userId);
+  
+        if (!user) {
+          return httpResponse.NOT_FOUND(res, { error: "User not found" });
+        }
+  
+        // Object to hold the fields that need to be updated
+        const updateFields = {};
+  
+        if (name) updateFields.name = name;
+        if (email) updateFields.email = email;
+        if (phone) updateFields.phone = phone;
+        if (bio) updateFields.bio = bio;
+        if (birthDate) updateFields.birthDate = birthDate;
+  
+        // Check and update password only if oldPassword and newPassword are provided
+        if (oldPassword && newPassword) {
+          const isPasswordCorrect = passwordHash.verify(oldPassword, user.password);
+          if (!isPasswordCorrect) {
+            return httpResponse.UNAUTHORIZED(res, { error: "Wrong old password" });
+          }
+          updateFields.password = passwordHash.generate(newPassword);
+        }
 
-    try {
-      // Retrieve the user from the database
-      const user = await UserModel.findById(userId);
-
-      if (!user) {
-        return httpResponse.NOT_FOUND(res, { error: "User not found" });
+        // If a file is uploaded, set the profilePic field to the path of the uploaded file
+        if (req.file) {
+          updateFields.profilePic = req.file.path; // Assuming req.file.path contains the path of the uploaded file
+        }
+  
+        // Update user with new details
+        const updatedUser = await UserModel.findByIdAndUpdate(userId, updateFields, { new: true });
+  
+        return httpResponse.SUCCESS(res, { message: "User updated successfully", user: updatedUser });
+      } catch (error) {
+        console.error("Error updating user:", error);
+        return httpResponse.INTERNAL_SERVER_ERROR(res, error);
       }
-
-      // Check if old password is correct
-      const isPasswordCorrect = passwordHash.verify(oldPassword, user.password);
-
-      if (!isPasswordCorrect) {
-        return httpResponse.UNAUTHORIZED(res, { error: "Wrong old password" });
-      }
-
-      // If old password is correct, hash the new password
-      const hashpassword = passwordHash.generate(newPassword);
-
-      // Update user with new details
-      const updatedUser = await UserModel.findByIdAndUpdate(
-        userId,
-        { name, email, password: hashpassword, phone, bio, birthDate },
-        { new: true }
-      );
-
-      return httpResponse.SUCCESS(res, { message: "Updated password successfully", user: updatedUser });
-    } catch (error) {
-      console.error("Error updating user:", error);
-      return httpResponse.INTERNAL_SERVER_ERROR(res, error);
     }
-  },
+  ],
+  
+  
   getUser: async (req, res) => {
     const userId = req.params.id;
 
@@ -116,6 +144,25 @@ export const UserController = {
       return httpResponse.SUCCESS(res, user);
     } catch (error) {
       console.error("Error fetching user:", error);
+      return httpResponse.INTERNAL_SERVER_ERROR(res, error);
+    }
+  },
+
+  deleteUser: async (req, res) => {
+    const userId = req.params.id;
+  
+    try {
+      const user = await UserModel.findById(userId);
+      
+      if (!user) {
+        return httpResponse.NOT_FOUND(res, { error: "User not found" });
+      }
+  
+      await UserModel.findByIdAndDelete(userId);
+  
+      return httpResponse.SUCCESS(res, { message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
       return httpResponse.INTERNAL_SERVER_ERROR(res, error);
     }
   },
